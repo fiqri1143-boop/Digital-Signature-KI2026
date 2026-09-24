@@ -1,0 +1,19 @@
+# Python runtime and virtual environments
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+
+# Secrets and local configuration
+*.pem
+.env
+
+# Uploaded documents and generated files
+uploads/
+keys/
+*.sig
+
+# Test/tool caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
