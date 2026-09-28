@@ -1,0 +1,57 @@
+<!-- Template  sign card untuk antarmuka aplikasi tanda tangan digital. -->
+          <section class="work-card sign-card" id="sign" aria-labelledby="sign-title">
+            <div class="card-heading">
+              <span class="step-number">01</span>
+              <div><p class="card-kicker">BUAT TANDA TANGAN</p><h3 id="sign-title">Tanda tangani PDF</h3></div>
+              <span class="card-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m4 20 4.5-1 10.8-10.8a2.1 2.1 0 0 0-3-3L5.5 16 4 20Z"/><path d="m14.8 7.7 3 3"/></svg></span>
+            </div>
+            <p class="card-description">Tambahkan data penandatangan. PDF hasil akan memiliki QR-Code untuk pemeriksaan.</p>
+
+            <form id="sign-form" class="form-stack">
+              <label class="field-label" for="sign-pdf">Dokumen PDF</label>
+              <label class="file-drop" for="sign-pdf">
+                <span class="upload-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5"/><path d="M5 14v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4"/></svg></span>
+                <span class="file-copy"><strong>Pilih PDF untuk ditandatangani</strong><small data-file-name>Belum ada file dipilih · Maks. 20 MB</small></span>
+                <span class="file-browse">Jelajahi</span>
+                <input id="sign-pdf" name="pdf" type="file" accept="application/pdf,.pdf" required>
+              </label>
+
+              <div class="field-grid">
+                <div class="field"><label for="signer-name">Nama penandatangan</label><input id="signer-name" name="name" type="text" autocomplete="name" placeholder="Nama lengkap" maxlength="120" required></div>
+                <div class="field"><label for="signer-title">Jabatan</label><input id="signer-title" name="title" type="text" placeholder="Contoh: Mahasiswa" maxlength="120" required></div>
+                <div class="field"><label for="signer-institution">Institusi</label><input id="signer-institution" name="institution" type="text" placeholder="Nama institusi" maxlength="200" required></div>
+                <div class="field date-field" id="date-field">
+                  <label for="sign-date-display">Tanggal tanda tangan</label>
+                  <div class="date-control">
+                    <input id="sign-date-display" type="text" value="" placeholder="Pilih tanggal" readonly aria-haspopup="dialog" aria-expanded="false" aria-controls="signature-calendar">
+                    <button class="date-trigger" type="button" aria-label="Buka kalender tanggal" aria-controls="signature-calendar" aria-expanded="false">
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="16" rx="2.5"/><path d="M7.5 3v4M16.5 3v4M3.5 9h17"/></svg>
+                    </button>
+                  </div>
+                  <input id="sign-date" name="date" type="hidden">
+                  <div class="calendar-popover" id="signature-calendar" role="dialog" aria-label="Pilih tanggal tanda tangan" hidden>
+                    <div class="calendar-heading">
+                      <button type="button" class="calendar-nav" data-calendar-prev aria-label="Bulan sebelumnya">‹</button>
+                      <span class="calendar-month" data-calendar-month aria-live="polite"></span>
+                      <button type="button" class="calendar-nav" data-calendar-next aria-label="Bulan berikutnya">›</button>
+                    </div>
+                    <div class="calendar-weekdays" aria-hidden="true"><span>Sen</span><span>Sel</span><span>Rab</span><span>Kam</span><span>Jum</span><span>Sab</span><span>Min</span></div>
+                    <div class="calendar-days" data-calendar-days role="grid" aria-label="Tanggal dalam bulan"></div>
+                    <div class="calendar-footer"><button type="button" data-calendar-today>Hari ini</button><button type="button" data-calendar-close>Tutup</button></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="field">
+                <label for="key-passphrase">Passphrase kunci privat</label>
+                <div class="password-control">
+                  <input id="key-passphrase" name="passphrase" type="password" minlength="8" autocomplete="current-password" placeholder="Minimal 8 karakter" required>
+                  <button class="password-toggle" type="button" aria-label="Tampilkan passphrase" aria-pressed="false" data-password-toggle>LIHAT</button>
+                </div>
+                <p class="field-help">Pertama kali: buat passphrase. Berikutnya: gunakan passphrase yang sama untuk membuka kunci.</p>
+              </div>
+
+              <button class="button button-primary submit-button" type="submit"><span>Tanda tangani &amp; unduh</span><span class="button-arrow" aria-hidden="true">↗</span></button>
+              <p class="status" role="status" aria-live="polite"></p>
+            </form>
+          </section>

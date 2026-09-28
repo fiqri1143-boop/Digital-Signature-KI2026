@@ -1,0 +1,28 @@
+<!-- Template  verify card untuk antarmuka aplikasi tanda tangan digital. -->
+          <section class="work-card verify-card" id="verify" aria-labelledby="verify-title">
+            <div class="card-heading">
+              <span class="step-number">02</span>
+              <div><p class="card-kicker">PERIKSA KEASLIAN</p><h3 id="verify-title">Verifikasi dokumen</h3></div>
+              <span class="card-icon card-icon-light" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3 19 6v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6l7-3Z"/><path d="m9 12 2 2 4-4"/></svg></span>
+            </div>
+            <p class="card-description">Pindai QR pada PDF, atau cocokkan PDF, file tanda tangan, dan kunci publik secara manual.</p>
+
+            <form id="verify-form" class="form-stack">
+              <label class="field-label" for="verify-pdf">PDF yang ingin diperiksa</label>
+              <label class="file-drop file-drop-compact" for="verify-pdf">
+                <span class="upload-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5"/><path d="M5 14v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4"/></svg></span>
+                <span class="file-copy"><strong>Pilih dokumen bertanda tangan</strong><small data-file-name>PDF asli dari hasil unduhan · Maks. 20 MB</small></span>
+                <span class="file-browse">Pilih</span>
+                <input id="verify-pdf" name="pdf" type="file" accept="application/pdf,.pdf" required>
+              </label>
+
+              <div class="field"><label class="field-label" for="signature">File tanda tangan <code>signature.sig</code></label><label class="file-drop file-drop-small" for="signature"><span class="upload-icon upload-icon-small" aria-hidden="true">SIG</span><span class="file-copy"><strong>Pilih signature.sig</strong><small data-file-name>Dari ZIP hasil tanda tangan</small></span><input id="signature" name="signature" type="file" required></label></div>
+              <div class="field"><label class="field-label" for="public-key">Kunci publik <code>public_key.pem</code></label><label class="file-drop file-drop-small" for="public-key"><span class="upload-icon upload-icon-small" aria-hidden="true">KEY</span><span class="file-copy"><strong>Pilih public_key.pem</strong><small data-file-name>Dari ZIP hasil tanda tangan</small></span><input id="public-key" name="public_key" type="file" required></label></div>
+
+              <button class="button button-dark submit-button" type="submit"><span>Periksa tanda tangan</span><span class="button-arrow" aria-hidden="true">→</span></button>
+              <p class="status" role="status" aria-live="polite"></p>
+            </form>
+            <div class="verification-tip"><span aria-hidden="true">i</span><p>Dokumen yang diubah setelah ditandatangani akan dinyatakan tidak valid.</p></div>
+          </section>
+        </div>
+      </section>

@@ -1,5 +1,4 @@
-"""Helpers for hashing PDF files and creating/verifying RSA signatures."""
-
+# Menyediakan fungsi hash SHA-256 dan tanda tangan RSA-PSS untuk PDF.
 import hashlib
 from pathlib import Path
 
@@ -8,56 +7,46 @@ from Crypto.PublicKey import RSA
 from Crypto.Signature import pss
 
 
+# Menghasilkan pasangan kunci RSA 2048-bit.
 def generate_keys():
-    """Generate and return an RSA-2048 private key and its public key."""
-    private_key = RSA.generate(2048)
-    return private_key, private_key.public_key()
+    kunci_privat = RSA.generate(2048)
+    return kunci_privat, kunci_privat.public_key()
 
 
-def hash_pdf(file_path):
-    """Return the lowercase hexadecimal SHA-256 digest of a PDF file.
-
-    Reads in chunks so large documents do not need to fit in memory.
-    """
-    digest = hashlib.sha256()
-    with Path(file_path).open("rb") as pdf_file:
-        for chunk in iter(lambda: pdf_file.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
+# Menghitung hash SHA-256 berkas PDF secara bertahap.
+def hash_pdf(jalur_pdf):
+    intisari = hashlib.sha256()
+    with Path(jalur_pdf).open("rb") as berkas_pdf:
+        for potongan_data in iter(lambda: berkas_pdf.read(1024 * 1024), b""):
+            intisari.update(potongan_data)
+    return intisari.hexdigest()
 
 
-def sign_document(pdf_path, private_key):
-    """Sign a PDF's SHA-256 digest with RSA-PSS and return signature bytes.
-
-    ``private_key`` may be a PyCryptodome RSA key object or PEM bytes/string.
-    """
-    if not isinstance(private_key, RSA.RsaKey):
-        private_key = RSA.import_key(private_key)
-    if not private_key.has_private():
+# Menandatangani hash PDF menggunakan RSA-PSS.
+def sign_document(jalur_pdf, kunci_privat):
+    if not isinstance(kunci_privat, RSA.RsaKey):
+        kunci_privat = RSA.import_key(kunci_privat)
+    if not kunci_privat.has_private():
         raise ValueError("Kunci yang diberikan bukan private key.")
 
-    digest = SHA256.new()
-    with Path(pdf_path).open("rb") as pdf_file:
-        for chunk in iter(lambda: pdf_file.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return pss.new(private_key).sign(digest)
+    intisari = SHA256.new()
+    with Path(jalur_pdf).open("rb") as berkas_pdf:
+        for potongan_data in iter(lambda: berkas_pdf.read(1024 * 1024), b""):
+            intisari.update(potongan_data)
+    return pss.new(kunci_privat).sign(intisari)
 
 
-def verify_document(pdf_path, signature, public_key):
-    """Verify an RSA-PSS signature; return True if valid, otherwise False.
+# Memeriksa tanda tangan RSA-PSS terhadap isi PDF.
+def verify_document(jalur_pdf, tanda_tangan, kunci_publik):
+    if not isinstance(kunci_publik, RSA.RsaKey):
+        kunci_publik = RSA.import_key(kunci_publik)
 
-    ``signature`` is the bytes returned by :func:`sign_document`.
-    ``public_key`` may be a PyCryptodome RSA key object or PEM bytes/string.
-    """
-    if not isinstance(public_key, RSA.RsaKey):
-        public_key = RSA.import_key(public_key)
-
-    digest = SHA256.new()
-    with Path(pdf_path).open("rb") as pdf_file:
-        for chunk in iter(lambda: pdf_file.read(1024 * 1024), b""):
-            digest.update(chunk)
+    intisari = SHA256.new()
+    with Path(jalur_pdf).open("rb") as berkas_pdf:
+        for potongan_data in iter(lambda: berkas_pdf.read(1024 * 1024), b""):
+            intisari.update(potongan_data)
     try:
-        pss.new(public_key).verify(digest, signature)
+        pss.new(kunci_publik).verify(intisari, tanda_tangan)
         return True
     except (ValueError, TypeError):
         return False

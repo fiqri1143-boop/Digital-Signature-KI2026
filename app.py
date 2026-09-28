@@ -1,5 +1,4 @@
-"""Flask web app for signing and verifying PDF files."""
-
+# Menyediakan halaman dan endpoint untuk tanda tangan serta verifikasi PDF.
 import base64
 from datetime import date
 from io import BytesIO
@@ -19,177 +18,226 @@ import crypto_utils
 
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 20 * 1024 * 1024
-DATA_DIR = Path(app.instance_path)
-KEY_PATH = DATA_DIR / "keys" / "signing_private.pem.enc"
-RECORDS_DIR = DATA_DIR / "verification_records"
+DIREKTORI_DATA = Path(app.instance_path)
+JALUR_KUNCI = DIREKTORI_DATA / "keys" / "signing_private.pem.enc"
+DIREKTORI_CATATAN = DIREKTORI_DATA / "verification_records"
 
 
 @app.get("/")
+# Menampilkan halaman beranda aplikasi.
 def index():
-    return render_template("index.html")
+    return render_template("index.html", halaman_aktif="home")
 
 
-def get_or_create_signing_key(passphrase):
-    """Load the persistent encrypted key, or create it on first use."""
-    KEY_PATH.parent.mkdir(parents=True, exist_ok=True)
-    if KEY_PATH.exists():
+@app.get("/sign")
+# Menampilkan halaman untuk membuat tanda tangan digital.
+def sign_page():
+    return render_template("sign.html", halaman_aktif="sign")
+
+
+# Membuka kunci privat terenkripsi atau membuatnya saat pertama digunakan.
+def get_or_create_signing_key(frasa_sandi):
+    JALUR_KUNCI.parent.mkdir(parents=True, exist_ok=True)
+    if JALUR_KUNCI.exists():
         try:
-            private_key = RSA.import_key(KEY_PATH.read_bytes(), passphrase=passphrase)
-        except (ValueError, IndexError, TypeError) as error:
-            raise ValueError("Passphrase salah atau berkas kunci tidak valid.") from error
-        return private_key
+            kunci_privat = RSA.import_key(JALUR_KUNCI.read_bytes(), passphrase=frasa_sandi)
+        except (ValueError, IndexError, TypeError) as kesalahan:
+            raise ValueError("Passphrase salah atau berkas kunci tidak valid.") from kesalahan
+        return kunci_privat
 
-    private_key, _ = crypto_utils.generate_keys()
-    encrypted_pem = private_key.export_key(
+    kunci_privat, _ = crypto_utils.generate_keys()
+    pem_terenkripsi = kunci_privat.export_key(
         format="PEM",
-        passphrase=passphrase,
+        passphrase=frasa_sandi,
         pkcs=8,
         protection="scryptAndAES128-CBC",
     )
-    KEY_PATH.write_bytes(encrypted_pem)
-    return private_key
+    JALUR_KUNCI.write_bytes(pem_terenkripsi)
+    return kunci_privat
 
 
-def add_verification_qr(pdf_bytes, verification_url):
-    """Append a scannable verification link to the final PDF page."""
-    qr = qrcode.make(
-        verification_url,
+# Menambahkan QR verifikasi pada halaman terakhir PDF.
+def add_verification_qr(isi_pdf, tautan_verifikasi):
+    gambar_qr = qrcode.make(
+        tautan_verifikasi,
         image_factory=qrcode.image.svg.SvgPathImage,
         box_size=6,
         border=2,
     )
-    svg_buffer = BytesIO()
-    qr.save(svg_buffer)
-    svg_doc = pymupdf.open(stream=svg_buffer.getvalue(), filetype="svg")
-    qr_png = svg_doc[0].get_pixmap(matrix=pymupdf.Matrix(3, 3), alpha=False).tobytes("png")
+    penyangga_svg = BytesIO()
+    gambar_qr.save(penyangga_svg)
+    dokumen_svg = pymupdf.open(stream=penyangga_svg.getvalue(), filetype="svg")
+    gambar_qr = dokumen_svg[0].get_pixmap(matrix=pymupdf.Matrix(3, 3), alpha=False).tobytes("png")
 
-    document = pymupdf.open(stream=pdf_bytes, filetype="pdf")
-    page = document[-1]
-    qr_size = 105
-    margin = 24
-    rect = pymupdf.Rect(
-        page.rect.width - qr_size - margin,
-        page.rect.height - qr_size - margin,
-        page.rect.width - margin,
-        page.rect.height - margin,
+    dokumen = pymupdf.open(stream=isi_pdf, filetype="pdf")
+    halaman = dokumen[-1]
+    ukuran_qr = 105
+    jarak_tepi = 24
+    area = pymupdf.Rect(
+        halaman.rect.width - ukuran_qr - jarak_tepi,
+        halaman.rect.height - ukuran_qr - jarak_tepi,
+        halaman.rect.width - jarak_tepi,
+        halaman.rect.height - jarak_tepi,
     )
-    page.draw_rect(rect + (-5, -5, 5, 5), color=(1, 1, 1), fill=(1, 1, 1), overlay=True)
-    page.insert_image(rect, stream=qr_png, overlay=True)
-    return document.tobytes(garbage=4, deflate=True)
+    halaman.draw_rect(area + (-5, -5, 5, 5), color=(1, 1, 1), fill=(1, 1, 1), overlay=True)
+    halaman.insert_image(area, stream=gambar_qr, overlay=True)
+    return dokumen.tobytes(garbage=4, deflate=True)
+
+
+# Mengganti nama contoh pada PDF jika teksnya tersedia.
+def replace_sample_name(isi_pdf, nama_penanda_tangan):
+    dokumen = pymupdf.open(stream=isi_pdf, filetype="pdf")
+    kecocokan = []
+    for halaman in dokumen:
+        kecocokan.extend((halaman, area) for area in halaman.search_for("MAHASISWA CONTOH"))
+
+    if not kecocokan:
+        dokumen.close()
+        return isi_pdf
+
+    for halaman, area in kecocokan:
+        halaman.add_redact_annot(area, fill=(1, 1, 1))
+    for halaman in dokumen:
+        halaman.apply_redactions()
+
+    for halaman, area in kecocokan:
+        # Menjaga nama pengganti tetap rata tengah dalam satu baris.
+        kotak_teks = pymupdf.Rect(
+            50, area.y0 - 4, halaman.rect.width - 50, area.y1 + 6
+        )
+        lebar_teks_awal = pymupdf.get_text_length(
+            nama_penanda_tangan, fontname="hebo", fontsize=1
+        )
+        ukuran_font = min(20, kotak_teks.width / max(lebar_teks_awal, 1))
+        halaman.insert_textbox(
+            kotak_teks,
+            nama_penanda_tangan,
+            fontname="hebo",
+            fontsize=ukuran_font,
+            align=pymupdf.TEXT_ALIGN_CENTER,
+            color=(0.141, 0.349, 0.812),
+        )
+
+    pdf_personalisasi = dokumen.tobytes(garbage=4, deflate=True)
+    dokumen.close()
+    return pdf_personalisasi
 
 
 @app.post("/sign")
+# Memvalidasi masukan, menandatangani PDF, lalu mengirim arsip hasilnya.
 def sign():
-    pdf = request.files.get("pdf")
-    passphrase = request.form.get("passphrase", "")
-    metadata = {
+    berkas_pdf = request.files.get("pdf")
+    frasa_sandi = request.form.get("passphrase", "")
+    metadata_penanda_tangan = {
         "name": request.form.get("name", "").strip(),
         "title": request.form.get("title", "").strip(),
         "institution": request.form.get("institution", "").strip(),
         "date": request.form.get("date", "").strip() or date.today().isoformat(),
     }
-    if not pdf or not pdf.filename:
+    if not berkas_pdf or not berkas_pdf.filename:
         return jsonify(error="Pilih file PDF yang akan ditandatangani."), 400
-    if Path(pdf.filename).suffix.lower() != ".pdf":
+    if Path(berkas_pdf.filename).suffix.lower() != ".pdf":
         return jsonify(error="File yang dipilih harus berformat PDF."), 400
-    if len(passphrase) < 8:
+    if len(frasa_sandi) < 8:
         return jsonify(error="Passphrase kunci minimal 8 karakter."), 400
-    if not metadata["name"] or not metadata["title"] or not metadata["institution"]:
+    if not metadata_penanda_tangan["name"] or not metadata_penanda_tangan["title"] or not metadata_penanda_tangan["institution"]:
         return jsonify(error="Lengkapi nama, jabatan, dan institusi penandatangan."), 400
-    if any(len(value) > 120 for key, value in metadata.items() if key != "institution") or len(metadata["institution"]) > 200:
+    if any(len(nilai) > 120 for nama_field, nilai in metadata_penanda_tangan.items() if nama_field != "institution") or len(metadata_penanda_tangan["institution"]) > 200:
         return jsonify(error="Metadata terlalu panjang; pendekkan nama, jabatan, atau institusi."), 400
 
     try:
-        with tempfile.TemporaryDirectory() as temp_dir:
-            input_path = Path(temp_dir) / "source.pdf"
-            pdf.save(input_path)
-            original_pdf = input_path.read_bytes()
-            # The link points to a record created below; the signature covers
-            # the final PDF, including this QR code.
+        with tempfile.TemporaryDirectory() as direktori_sementara:
+            jalur_masukan = Path(direktori_sementara) / "source.pdf"
+            berkas_pdf.save(jalur_masukan)
+            pdf_asli = jalur_masukan.read_bytes()
+            # Tanda tangan mencakup PDF akhir bersama QR verifikasi.
             token = secrets.token_urlsafe(18)
-            verification_url = url_for(
+            tautan_verifikasi = url_for(
                 "verify_by_token",
                 token=token,
                 _external=True,
-                name=metadata["name"],
-                title=metadata["title"],
-                institution=metadata["institution"],
-                date=metadata["date"],
+                name=metadata_penanda_tangan["name"],
+                title=metadata_penanda_tangan["title"],
+                institution=metadata_penanda_tangan["institution"],
+                date=metadata_penanda_tangan["date"],
             )
-            signed_pdf = add_verification_qr(original_pdf, verification_url)
-            final_path = Path(temp_dir) / "signed.pdf"
-            final_path.write_bytes(signed_pdf)
-            private_key = get_or_create_signing_key(passphrase)
-            public_key = private_key.public_key()
-            signature = crypto_utils.sign_document(final_path, private_key)
-    except ValueError as error:
-        return jsonify(error=str(error)), 400
-    except Exception as error:
-        # Do not leak local paths or internal exceptions to the browser.
+            pdf_personalisasi = replace_sample_name(pdf_asli, metadata_penanda_tangan["name"])
+            pdf_bertanda_tangan = add_verification_qr(pdf_personalisasi, tautan_verifikasi)
+            jalur_final = Path(direktori_sementara) / "signed.pdf"
+            jalur_final.write_bytes(pdf_bertanda_tangan)
+            kunci_privat = get_or_create_signing_key(frasa_sandi)
+            kunci_publik = kunci_privat.public_key()
+            tanda_tangan = crypto_utils.sign_document(jalur_final, kunci_privat)
+    except ValueError as kesalahan:
+        return jsonify(error=str(kesalahan)), 400
+    except Exception as kesalahan:
+        # Menyembunyikan jalur lokal dan rincian error internal dari browser.
         app.logger.exception("Failed to sign uploaded PDF")
         return jsonify(error="PDF tidak dapat diproses. Pastikan berkas PDF valid."), 400
 
-    public_pem = public_key.export_key(format="PEM")
-    RECORDS_DIR.mkdir(parents=True, exist_ok=True)
-    record = {
-        **metadata,
-        "verification_url": verification_url,
-        "signature": base64.b64encode(signature).decode("ascii"),
-        "public_key": public_pem.decode("ascii"),
+    pem_publik = kunci_publik.export_key(format="PEM")
+    DIREKTORI_CATATAN.mkdir(parents=True, exist_ok=True)
+    catatan = {
+        **metadata_penanda_tangan,
+        "verification_url": tautan_verifikasi,
+        "signature": base64.b64encode(tanda_tangan).decode("ascii"),
+        "public_key": pem_publik.decode("ascii"),
     }
-    (RECORDS_DIR / f"{token}.json").write_text(json.dumps(record), encoding="utf-8")
+    (DIREKTORI_CATATAN / f"{token}.json").write_text(json.dumps(catatan), encoding="utf-8")
 
-    archive = BytesIO()
-    with ZipFile(archive, "w", ZIP_DEFLATED) as bundle:
-        bundle.writestr("signed_document.pdf", signed_pdf)
-        bundle.writestr("signature.sig", signature)
-        bundle.writestr("public_key.pem", public_pem)
-        bundle.writestr(
+    arsip = BytesIO()
+    with ZipFile(arsip, "w", ZIP_DEFLATED) as paket:
+        paket.writestr("signed_document.pdf", pdf_bertanda_tangan)
+        paket.writestr("signature.sig", tanda_tangan)
+        paket.writestr("public_key.pem", pem_publik)
+        paket.writestr(
             "README.txt",
             "Dokumen PDF sudah memuat QR-Code verifikasi. Pindai QR untuk membuka "
             "halaman verifikasi. Simpan signature.sig dan public_key.pem untuk "
             "verifikasi manual. Kunci privat tersimpan terenkripsi di server lokal.\n",
         )
-    archive.seek(0)
+    arsip.seek(0)
     return send_file(
-        archive,
+        arsip,
         mimetype="application/zip",
         as_attachment=True,
         download_name="hasil_tanda_tangan.zip",
     )
 
 
+# Memuat catatan verifikasi berdasarkan token yang aman.
 def load_verification_record(token):
-    if not token or not all(char.isalnum() or char in "_-" for char in token):
+    if not token or not all(karakter.isalnum() or karakter in "_-" for karakter in token):
         return None
-    path = RECORDS_DIR / f"{token}.json"
-    if not path.is_file():
+    jalur = DIREKTORI_CATATAN / f"{token}.json"
+    if not jalur.is_file():
         return None
     try:
-        return json.loads(path.read_text(encoding="utf-8"))
+        return json.loads(jalur.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
         return None
 
 
 @app.route("/verify/<token>", methods=["GET", "POST"])
+# Memverifikasi PDF melalui tautan QR yang memiliki token.
 def verify_by_token(token):
-    record = load_verification_record(token)
-    if record is None:
-        return render_template("verify.html", error="Data verifikasi tidak ditemukan."), 404
+    catatan = load_verification_record(token)
+    if catatan is None:
+        return render_template("verify.html", pesan_error="Data verifikasi tidak ditemukan."), 404
     if request.method == "GET":
-        return render_template("verify.html", record=record, token=token)
+        return render_template("verify.html", catatan=catatan, token=token)
 
-    pdf = request.files.get("pdf")
-    if not pdf or not pdf.filename or Path(pdf.filename).suffix.lower() != ".pdf":
+    berkas_pdf = request.files.get("pdf")
+    if not berkas_pdf or not berkas_pdf.filename or Path(berkas_pdf.filename).suffix.lower() != ".pdf":
         return jsonify(error="Pilih dokumen PDF yang akan diverifikasi."), 400
     try:
-        with tempfile.TemporaryDirectory() as temp_dir:
-            pdf_path = Path(temp_dir) / "document.pdf"
-            pdf.save(pdf_path)
+        with tempfile.TemporaryDirectory() as direktori_sementara:
+            jalur_pdf = Path(direktori_sementara) / "document.pdf"
+            berkas_pdf.save(jalur_pdf)
             valid = crypto_utils.verify_document(
-                pdf_path,
-                base64.b64decode(record["signature"], validate=True),
-                record["public_key"],
+                jalur_pdf,
+                base64.b64decode(catatan["signature"], validate=True),
+                catatan["public_key"],
             )
     except (ValueError, TypeError, KeyError):
         return jsonify(error="Data tanda tangan tidak valid."), 400
@@ -203,36 +251,45 @@ def verify_by_token(token):
     )
 
 
+@app.get("/verify")
+# Menampilkan halaman untuk memeriksa tanda tangan secara manual.
+def verify_page():
+    return render_template("verify_manual.html", halaman_aktif="verify")
+
+
 @app.post("/verify")
+# Memeriksa PDF menggunakan file tanda tangan dan kunci publik.
 def verify():
-    pdf = request.files.get("pdf")
-    signature = request.files.get("signature")
-    public_key = request.files.get("public_key")
-    if not all((pdf, signature, public_key)):
+    berkas_pdf = request.files.get("pdf")
+    tanda_tangan = request.files.get("signature")
+    kunci_publik = request.files.get("public_key")
+    if not all((berkas_pdf, tanda_tangan, kunci_publik)):
         return jsonify(error="Pilih PDF, file signature.sig, dan public_key.pem."), 400
-    if not pdf.filename or Path(pdf.filename).suffix.lower() != ".pdf":
+    if not berkas_pdf.filename or Path(berkas_pdf.filename).suffix.lower() != ".pdf":
         return jsonify(error="Dokumen yang diverifikasi harus berformat PDF."), 400
     try:
-        with tempfile.TemporaryDirectory() as temp_dir:
-            pdf_path = Path(temp_dir) / "document.pdf"
-            pdf.save(pdf_path)
-            is_valid = crypto_utils.verify_document(pdf_path, signature.read(), public_key.read())
+        with tempfile.TemporaryDirectory() as direktori_sementara:
+            jalur_pdf = Path(direktori_sementara) / "document.pdf"
+            berkas_pdf.save(jalur_pdf)
+            valid = crypto_utils.verify_document(jalur_pdf, tanda_tangan.read(), kunci_publik.read())
     except (ValueError, TypeError, IndexError):
         return jsonify(error="File kunci publik atau tanda tangan tidak valid."), 400
     return jsonify(
-        valid=is_valid,
+        valid=valid,
         message=(
             "Tanda tangan valid. Dokumen cocok dengan tanda tangan."
-            if is_valid
+            if valid
             else "Tanda tangan tidak valid atau dokumen telah berubah."
         ),
     )
 
 
 @app.errorhandler(413)
-def file_too_large(_error):
+# Mengirim pesan saat unggahan melebihi batas ukuran.
+def file_too_large(_kesalahan):
     return jsonify(error="Ukuran file maksimal 20 MB."), 413
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    # Membuka server untuk akses komputer atau ponsel di jaringan lokal.
+    app.run(host="0.0.0.0", port=5000, debug=True)

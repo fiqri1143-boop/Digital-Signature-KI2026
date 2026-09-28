@@ -1,3 +1,4 @@
+# Daftar pustaka Python yang dibutuhkan aplikasi.
 Flask
 pycryptodome
 PyMuPDF

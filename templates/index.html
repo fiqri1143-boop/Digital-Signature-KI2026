@@ -1,98 +1,79 @@
+<!-- Template index untuk antarmuka aplikasi tanda tangan digital. -->
 <!doctype html>
 <html lang="id">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#171816">
   <title>Tanda Tangan Digital PDF</title>
-  <style>
-    :root { color-scheme: light; font-family: system-ui, sans-serif; color: #172033; background: #f2f5fb; }
-    body { margin: 0; padding: 32px 16px; }
-    main { max-width: 900px; margin: auto; }
-    h1 { margin-bottom: 8px; }
-    .intro { color: #526078; margin-top: 0; }
-    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 18px; margin-top: 24px; }
-    section { background: white; border: 1px solid #dfe5ef; border-radius: 14px; padding: 22px; box-shadow: 0 4px 18px #2032520c; }
-    h2 { margin-top: 0; }
-    label { display: block; font-weight: 600; margin: 16px 0 6px; }
-    input[type=file] { width: 100%; }
-    button { margin-top: 18px; border: 0; border-radius: 8px; background: #2459cf; color: white; padding: 11px 16px; font-weight: 700; cursor: pointer; }
-    button:disabled { opacity: .6; cursor: wait; }
-    .status { min-height: 24px; margin-bottom: 0; font-weight: 600; }
-    .hint { color: #526078; font-size: .93rem; line-height: 1.5; }
-    .success { color: #087443; } .failure { color: #b42318; }
-  </style>
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/logo.png') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
-  <main>
-    <h1>Tanda Tangan Digital PDF</h1>
-    <p class="intro">Tandatangani dokumen dan periksa apakah dokumen masih sesuai dengan tanda tangannya.</p>
-    <div class="cards">
-      <section>
-        <h2>1. Tanda tangani PDF</h2>
-        <p class="hint">Isi metadata penandatangan, lalu pilih PDF. Kunci privat RSA disimpan terenkripsi menggunakan passphrase. PDF hasil akan memuat QR-Code verifikasi.</p>
-        <form id="sign-form">
-          <label for="sign-pdf">Dokumen PDF</label>
-          <input id="sign-pdf" name="pdf" type="file" accept="application/pdf,.pdf" required>
-          <label for="signer-name">Nama penandatangan</label>
-          <input id="signer-name" name="name" type="text" autocomplete="name" required>
-          <label for="signer-title">Jabatan</label>
-          <input id="signer-title" name="title" type="text" required>
-          <label for="signer-institution">Institusi</label>
-          <input id="signer-institution" name="institution" type="text" required>
-          <label for="sign-date">Tanggal</label>
-          <input id="sign-date" name="date" type="date" required>
-          <label for="key-passphrase">Passphrase kunci privat (minimal 8 karakter)</label>
-          <input id="key-passphrase" name="passphrase" type="password" minlength="8" autocomplete="new-password" required>
-          <button type="submit">Tanda tangani &amp; unduh</button>
-          <p class="status" aria-live="polite"></p>
-        </form>
+  <div class="site-frame">
+    <header class="topbar">
+      <a class="brand" href="{{ url_for('index') }}" aria-label="TandaTera, beranda">
+        <span class="brand-mark" aria-hidden="true"><img src="{{ url_for('static', filename='images/logo.png') }}" alt=""></span>
+        <span>TANDATERA<span class="brand-period">.</span></span>
+      </a>
+      <nav class="main-nav" aria-label="Navigasi utama">
+        <a href="{{ url_for('index') }}" {% if halaman_aktif == 'home' %}aria-current="page"{% endif %}>Beranda</a>
+        <a href="{{ url_for('sign') }}" {% if halaman_aktif == 'sign' %}aria-current="page"{% endif %}>Tanda tangani</a>
+        <a href="{{ url_for('verify') }}" {% if halaman_aktif == 'verify' %}aria-current="page"{% endif %}>Verifikasi</a>
+      </nav>
+      <a class="topbar-cta" href="{{ url_for('sign') if halaman_aktif != 'sign' else url_for('verify') }}">{{ 'Mulai sekarang' if halaman_aktif != 'sign' else 'Periksa dokumen' }} <span aria-hidden="true">↗</span></a>
+    </header>
+
+    <main id="top">
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="hero-copy">
+          <p class="eyebrow"><span class="eyebrow-dot"></span> AMAN · TERUJI · MUDAH</p>
+          <h1 id="hero-title">Dokumen asli.<br><span>Tanda tangan</span><br>terpercaya.</h1>
+          <p class="hero-description">Tandatangani PDF dengan RSA-PSS dan SHA-256. Bagikan QR-Code agar siapa pun bisa memeriksa keasliannya.</p>
+          <div class="hero-actions">
+            <a class="button button-dark" href="{{ url_for('sign') }}">Tanda tangani PDF <span aria-hidden="true">↗</span></a>
+            <a class="text-link" href="{{ url_for('verify') }}">Saya ingin verifikasi <span aria-hidden="true">↓</span></a>
+          </div>
+          <div class="security-notes" aria-label="Teknologi yang digunakan">
+            <span><i class="mini-check">✓</i> RSA 2048 / PSS</span>
+            <span><i class="mini-check">✓</i> SHA-256</span>
+            <span><i class="mini-check">✓</i> QR verifikasi</span>
+          </div>
+        </div>
+
+        <div class="hero-art" aria-hidden="true">
+          <div class="art-halo"></div>
+          <div class="paper paper-back paper-back-one"></div>
+          <div class="paper paper-back paper-back-two"></div>
+          <div class="document-card">
+            <div class="document-topline"><span class="doc-symbol">T.</span><span>TERVERIFIKASI DIGITAL</span></div>
+            <div class="doc-rule"></div>
+            <div class="doc-title-lines"><b></b><b></b><b></b></div>
+            <div class="doc-body-lines"><i></i><i></i><i></i><i></i></div>
+            <div class="doc-sign-row">
+              <div class="signature-scribble"><svg viewBox="0 0 130 38"><path d="M4 27c13 1 12-22 18-20 5 2-4 24 1 25 4 1 13-18 17-17 3 1-3 14 1 14 5 0 11-12 16-12 5 1-1 12 5 13 6 1 16-11 23-10 7 1 5 8 11 8 8 0 13-8 25-8"/></svg></div>
+              <span>RSA-PSS · SHA-256</span>
+            </div>
+            <div class="document-seal"><svg viewBox="0 0 44 44"><path d="m12 22 7 7 14-15"/></svg></div>
+          </div>
+          <div class="qr-float">
+            <div class="qr-pattern"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+            <span>SCAN TO VERIFY</span>
+          </div>
+          <div class="art-caption"><span class="caption-pulse"></span> Setiap tanda tangan dapat diperiksa.</div>
+        </div>
       </section>
-      <section>
-        <h2>2. Verifikasi tanda tangan</h2>
-        <p class="hint">Untuk pemeriksaan publik, pindai QR-Code pada PDF lalu unggah PDF bertanda tangan pada halaman tersebut. Untuk verifikasi manual, ekstrak ZIP dan unggah PDF, <code>signature.sig</code>, serta <code>public_key.pem</code> di sini.</p>
-        <form id="verify-form">
-          <label for="verify-pdf">Dokumen PDF</label>
-          <input id="verify-pdf" name="pdf" type="file" accept="application/pdf,.pdf" required>
-          <label for="signature">File tanda tangan (signature.sig)</label>
-          <input id="signature" name="signature" type="file" required>
-          <label for="public-key">Kunci publik (public_key.pem)</label>
-          <input id="public-key" name="public_key" type="file" required>
-          <button type="submit">Verifikasi</button>
-          <p class="status" aria-live="polite"></p>
-        </form>
+
+      <section class="workflow home-services" aria-labelledby="services-title">
+        <div class="section-heading"><div><p class="eyebrow">RUANG KERJA</p><h2 id="services-title">Pilih yang ingin kamu lakukan.</h2></div><p class="section-note">Dua langkah awal, satu tujuan: dokumen tepercaya.</p></div>
+        <div class="service-grid">
+          <a class="service-card" href="{{ url_for('sign') }}"><span class="step-number">01 · BUAT TANDA TANGAN</span><span class="service-title">Tanda tangani PDF <b aria-hidden="true">↗</b></span><span class="service-copy">Tambahkan identitas penandatangan dan hasilkan PDF dengan QR verifikasi.</span></a>
+          <a class="service-card" href="{{ url_for('verify') }}"><span class="step-number">02 · PERIKSA KEASLIAN</span><span class="service-title">Verifikasi dokumen <b aria-hidden="true">→</b></span><span class="service-copy">Periksa PDF menggunakan QR atau unggah berkas tanda tangan secara manual.</span></a>
+        </div>
       </section>
-    </div>
-  </main>
-  <script>
-    const showError = async (response) => {
-      try { return (await response.json()).error || 'Permintaan gagal.'; }
-      catch { return 'Permintaan gagal. Coba lagi.'; }
-    };
-    document.querySelector('#sign-form').addEventListener('submit', async (event) => {
-      event.preventDefault();
-      const form = event.currentTarget, button = form.querySelector('button'), status = form.querySelector('.status');
-      button.disabled = true; status.className = 'status'; status.textContent = 'Memproses tanda tangan…';
-       try {
-        const response = await fetch('/sign', { method: 'POST', body: new FormData(form) });
-        if (!response.ok) throw new Error(await showError(response));
-        const blob = await response.blob(), url = URL.createObjectURL(blob), link = document.createElement('a');
-        link.href = url; link.download = 'hasil_tanda_tangan.zip'; link.click(); URL.revokeObjectURL(url);
-        status.classList.add('success'); status.textContent = 'Selesai. Simpan ZIP dan PDF asli untuk verifikasi.';
-      } catch (error) { status.classList.add('failure'); status.textContent = error.message; }
-      finally { button.disabled = false; }
-    });
-    document.querySelector('#verify-form').addEventListener('submit', async (event) => {
-      event.preventDefault();
-      const form = event.currentTarget, button = form.querySelector('button'), status = form.querySelector('.status');
-      button.disabled = true; status.className = 'status'; status.textContent = 'Memeriksa tanda tangan…';
-      try {
-        const response = await fetch('/verify', { method: 'POST', body: new FormData(form) });
-        const result = await response.json();
-        if (!response.ok) throw new Error(result.error || 'Permintaan gagal.');
-        status.classList.add(result.valid ? 'success' : 'failure'); status.textContent = result.message;
-      } catch (error) { status.classList.add('failure'); status.textContent = error.message; }
-      finally { button.disabled = false; }
-    });
-  </script>
+
+      <footer class="site-footer"><a class="brand footer-brand" href="{{ url_for('index') }}"><span class="brand-mark" aria-hidden="true"><img src="{{ url_for('static', filename='images/logo.png') }}" alt=""></span><span>TANDATERA<span class="brand-period">.</span></span></a><span>Keaslian dokumen, dalam satu pemindaian.</span><span class="footer-tech">SHA-256 <b>·</b> RSA-PSS <b>·</b> QR</span></footer>
+  </div>
+  <script src="{{ url_for('static', filename='app.js') }}" defer></script>
 </body>
 </html>

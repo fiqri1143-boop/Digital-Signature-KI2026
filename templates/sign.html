@@ -1,0 +1,37 @@
+<!-- Template sign untuk antarmuka aplikasi tanda tangan digital. -->
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#171816">
+  <title>Tanda tangani PDF · TandaTera</title>
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/logo.png') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <div class="site-frame">
+    <header class="topbar">
+      <a class="brand" href="{{ url_for('index') }}" aria-label="TandaTera, beranda">
+        <span class="brand-mark" aria-hidden="true"><img src="{{ url_for('static', filename='images/logo.png') }}" alt=""></span>
+        <span>TANDATERA<span class="brand-period">.</span></span>
+      </a>
+      <nav class="main-nav" aria-label="Navigasi utama">
+        <a href="{{ url_for('index') }}" {% if halaman_aktif == 'home' %}aria-current="page"{% endif %}>Beranda</a>
+        <a href="{{ url_for('sign') }}" {% if halaman_aktif == 'sign' %}aria-current="page"{% endif %}>Tanda tangani</a>
+        <a href="{{ url_for('verify') }}" {% if halaman_aktif == 'verify' %}aria-current="page"{% endif %}>Verifikasi</a>
+      </nav>
+      <a class="topbar-cta" href="{{ url_for('sign') if halaman_aktif != 'sign' else url_for('verify') }}">{{ 'Mulai sekarang' if halaman_aktif != 'sign' else 'Periksa dokumen' }} <span aria-hidden="true">↗</span></a>
+    </header>
+
+    <main class="page-main">
+      <section class="workflow page-workspace" aria-labelledby="page-title">
+        <div class="section-heading"><div><p class="eyebrow">BUAT TANDA TANGAN</p><h1 id="page-title">Tanda tangani dokumenmu.</h1></div><p class="section-note">Data diproses dengan aman untuk menjaga keaslian dokumen.</p></div>
+        <div class="single-work-card">{% include "_sign_card.html" %}</div>
+      </section>
+    </main>
+      <footer class="site-footer"><a class="brand footer-brand" href="{{ url_for('index') }}"><span class="brand-mark" aria-hidden="true"><img src="{{ url_for('static', filename='images/logo.png') }}" alt=""></span><span>TANDATERA<span class="brand-period">.</span></span></a><span>Keaslian dokumen, dalam satu pemindaian.</span><span class="footer-tech">SHA-256 <b>·</b> RSA-PSS <b>·</b> QR</span></footer>
+  </div>
+  <script src="{{ url_for('static', filename='app.js') }}" defer></script>
+</body>
+</html>

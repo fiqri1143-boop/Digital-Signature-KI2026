@@ -1,21 +1,23 @@
-# Python runtime and virtual environments
+# Mengabaikan kunci, unggahan, konfigurasi lokal, dan cache pengembangan.
+# Cache Python dan lingkungan virtual
 venv/
 .venv/
 __pycache__/
 *.py[cod]
 
-# Secrets and local configuration
+# Kunci rahasia dan konfigurasi lokal
 *.pem
 .env
 
-# Uploaded documents and generated files
+# Dokumen unggahan dan berkas hasil proses
 uploads/
 keys/
 instance/
 *.sig
 
-# Test/tool caches
+# Cache pengujian dan alat pengembangan
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
 .test-deps/
+/data_uji/

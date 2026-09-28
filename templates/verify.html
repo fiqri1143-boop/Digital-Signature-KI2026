@@ -1,56 +1,69 @@
+<!-- Template verify untuk antarmuka aplikasi tanda tangan digital. -->
 <!doctype html>
 <html lang="id">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Verifikasi Dokumen</title>
-  <style>
-    :root { color-scheme: light; font-family: system-ui, sans-serif; color: #172033; background: #f2f5fb; }
-    body { margin: 0; padding: 32px 16px; }
-    main { max-width: 640px; margin: auto; background: #fff; border: 1px solid #dfe5ef; border-radius: 14px; padding: 24px; }
-    label { display: block; font-weight: 600; margin: 16px 0 6px; }
-    input[type=file] { width: 100%; }
-    button { margin-top: 18px; border: 0; border-radius: 8px; background: #2459cf; color: #fff; padding: 11px 16px; font-weight: 700; cursor: pointer; }
-    .meta { background: #f2f5fb; padding: 12px 16px; border-radius: 8px; }
-    .status { font-weight: 700; } .success { color: #087443; } .failure { color: #b42318; }
-  </style>
+  <meta name="theme-color" content="#171816">
+  <title>Verifikasi Tanda Tangan Digital</title>
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/logo.png') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
-  <main>
-    <h1>Verifikasi Tanda Tangan Digital</h1>
-    {% if error %}<p class="failure">{{ error }}</p>{% endif %}
-    {% if record %}
-    <p>Data penandatangan yang tercatat untuk QR-Code ini:</p>
-    <div class="meta">
-      <p><strong>Nama:</strong> {{ record.name }}</p>
-      <p><strong>Jabatan:</strong> {{ record.title }}</p>
-      <p><strong>Institusi:</strong> {{ record.institution }}</p>
-      <p><strong>Tanggal:</strong> {{ record.date }}</p>
-    </div>
-    <p>Unggah PDF yang memuat QR-Code ini untuk memeriksa tanda tangan dan memastikan isi dokumen belum berubah.</p>
-    <form id="verify-form">
-      <label for="verify-pdf">Dokumen PDF bertanda tangan</label>
-      <input id="verify-pdf" name="pdf" type="file" accept="application/pdf,.pdf" required>
-      <button type="submit">Verifikasi dokumen</button>
-      <p class="status" aria-live="polite"></p>
-    </form>
-    {% endif %}
-  </main>
-  {% if record %}
-  <script>
-    document.querySelector('#verify-form').addEventListener('submit', async (event) => {
-      event.preventDefault();
-      const form = event.currentTarget, button = form.querySelector('button'), status = form.querySelector('.status');
-      button.disabled = true; status.className = 'status'; status.textContent = 'Memeriksa tanda tangan…';
-      try {
-        const response = await fetch(location.pathname, { method: 'POST', body: new FormData(form) });
-        const result = await response.json();
-        if (!response.ok) throw new Error(result.error || 'Verifikasi gagal.');
-        status.classList.add(result.valid ? 'success' : 'failure'); status.textContent = result.message;
-      } catch (error) { status.classList.add('failure'); status.textContent = error.message; }
-      finally { button.disabled = false; }
-    });
-  </script>
-  {% endif %}
+  <div class="site-frame">
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="TandaTera, beranda">
+        <span class="brand-mark" aria-hidden="true"><img src="{{ url_for('static', filename='images/logo.png') }}" alt=""></span>
+        <span>TANDATERA<span class="brand-period">.</span></span>
+      </a>
+      <nav class="main-nav" aria-label="Navigasi utama">
+        <a href="{{ url_for('index') }}">Beranda</a>
+        <a href="{{ url_for('sign') }}">Tanda tangani</a>
+        <a href="{{ url_for('verify') }}" aria-current="page">Verifikasi</a>
+      </nav>
+      <a class="topbar-cta" href="{{ url_for('index') }}">Kembali ke beranda <span aria-hidden="true">↗</span></a>
+    </header>
+
+    <main class="verification-page">
+      {% if pesan_error %}
+      <section class="verify-panel error-panel" aria-labelledby="verify-error-title">
+        <a class="brand" href="/" aria-label="TandaTera, beranda"><span class="brand-mark" aria-hidden="true"><img src="{{ url_for('static', filename='images/logo.png') }}" alt=""></span><span>TANDATERA<span class="brand-period">.</span></span></a>
+        <p class="verify-eyebrow">TAUTAN VERIFIKASI</p>
+        <h1 id="verify-error-title">QR tidak dikenali.</h1>
+        <p class="error-message">{{ pesan_error }} Pastikan QR berasal dari PDF yang ditandatangani oleh aplikasi ini.</p>
+        <a class="verify-back" href="/">← Kembali ke beranda</a>
+      </section>
+      {% elif catatan %}
+      <section class="verify-panel" aria-labelledby="verify-title">
+        <a class="brand" href="/" aria-label="TandaTera, beranda"><span class="brand-mark" aria-hidden="true"><img src="{{ url_for('static', filename='images/logo.png') }}" alt=""></span><span>TANDATERA<span class="brand-period">.</span></span></a>
+        <p class="verify-eyebrow"><span class="eyebrow-dot"></span> TAUTAN VERIFIKASI DITEMUKAN</p>
+        <h1 id="verify-title">Periksa dokumen ini.</h1>
+        <p class="verify-lead">QR ini terhubung ke data tanda tangan berikut. Unggah PDF bertanda tangan untuk memastikan isinya belum berubah.</p>
+
+        <dl class="meta-card">
+          <div><dt>Nama penandatangan</dt><dd>{{ catatan.name }}</dd></div>
+          <div><dt>Jabatan</dt><dd>{{ catatan.title }}</dd></div>
+          <div><dt>Institusi</dt><dd>{{ catatan.institution }}</dd></div>
+          <div><dt>Tanggal</dt><dd>{{ catatan.date }}</dd></div>
+        </dl>
+
+        <form id="qr-verify-form" class="form-stack">
+          <label class="field-label" for="qr-verify-pdf">PDF yang memuat QR ini</label>
+          <label class="file-drop" for="qr-verify-pdf">
+            <span class="upload-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5"/><path d="M5 14v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4"/></svg></span>
+            <span class="file-copy"><strong>Pilih PDF untuk diperiksa</strong><small data-file-name>Gunakan PDF asli dari ZIP hasil unduhan</small></span>
+            <span class="file-browse">Jelajahi</span>
+            <input id="qr-verify-pdf" name="pdf" type="file" accept="application/pdf,.pdf" required>
+          </label>
+          <button class="button button-primary submit-button" type="submit"><span>Verifikasi dokumen</span><span class="button-arrow" aria-hidden="true">→</span></button>
+          <p class="status" role="status" aria-live="polite"></p>
+        </form>
+        <a class="verify-back" href="/">← Kembali ke beranda</a>
+      </section>
+      {% endif %}
+    </main>
+    <footer class="site-footer"><a class="brand footer-brand" href="/"><span class="brand-mark" aria-hidden="true"><img src="{{ url_for('static', filename='images/logo.png') }}" alt=""></span><span>TANDATERA<span class="brand-period">.</span></span></a><span>Memeriksa kesesuaian dokumen dengan tanda tangan digital.</span></footer>
+  </div>
+  <script src="{{ url_for('static', filename='app.js') }}" defer></script>
 </body>
 </html>
