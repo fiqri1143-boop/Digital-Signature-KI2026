@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Verifikasi Dokumen</title>
+  <style>
+    :root { color-scheme: light; font-family: system-ui, sans-serif; color: #172033; background: #f2f5fb; }
+    body { margin: 0; padding: 32px 16px; }
+    main { max-width: 640px; margin: auto; background: #fff; border: 1px solid #dfe5ef; border-radius: 14px; padding: 24px; }
+    label { display: block; font-weight: 600; margin: 16px 0 6px; }
+    input[type=file] { width: 100%; }
+    button { margin-top: 18px; border: 0; border-radius: 8px; background: #2459cf; color: #fff; padding: 11px 16px; font-weight: 700; cursor: pointer; }
+    .meta { background: #f2f5fb; padding: 12px 16px; border-radius: 8px; }
+    .status { font-weight: 700; } .success { color: #087443; } .failure { color: #b42318; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Verifikasi Tanda Tangan Digital</h1>
+    {% if error %}<p class="failure">{{ error }}</p>{% endif %}
+    {% if record %}
+    <p>Data penandatangan yang tercatat untuk QR-Code ini:</p>
+    <div class="meta">
+      <p><strong>Nama:</strong> {{ record.name }}</p>
+      <p><strong>Jabatan:</strong> {{ record.title }}</p>
+      <p><strong>Institusi:</strong> {{ record.institution }}</p>
+      <p><strong>Tanggal:</strong> {{ record.date }}</p>
+    </div>
+    <p>Unggah PDF yang memuat QR-Code ini untuk memeriksa tanda tangan dan memastikan isi dokumen belum berubah.</p>
+    <form id="verify-form">
+      <label for="verify-pdf">Dokumen PDF bertanda tangan</label>
+      <input id="verify-pdf" name="pdf" type="file" accept="application/pdf,.pdf" required>
+      <button type="submit">Verifikasi dokumen</button>
+      <p class="status" aria-live="polite"></p>
+    </form>
+    {% endif %}
+  </main>
+  {% if record %}
+  <script>
+    document.querySelector('#verify-form').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const form = event.currentTarget, button = form.querySelector('button'), status = form.querySelector('.status');
+      button.disabled = true; status.className = 'status'; status.textContent = 'Memeriksa tanda tangan…';
+      try {
+        const response = await fetch(location.pathname, { method: 'POST', body: new FormData(form) });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || 'Verifikasi gagal.');
+        status.classList.add(result.valid ? 'success' : 'failure'); status.textContent = result.message;
+      } catch (error) { status.classList.add('failure'); status.textContent = error.message; }
+      finally { button.disabled = false; }
+    });
+  </script>
+  {% endif %}
+</body>
+</html>

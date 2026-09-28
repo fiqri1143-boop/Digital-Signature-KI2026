@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tanda Tangan Digital PDF</title>
+  <style>
+    :root { color-scheme: light; font-family: system-ui, sans-serif; color: #172033; background: #f2f5fb; }
+    body { margin: 0; padding: 32px 16px; }
+    main { max-width: 900px; margin: auto; }
+    h1 { margin-bottom: 8px; }
+    .intro { color: #526078; margin-top: 0; }
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 18px; margin-top: 24px; }
+    section { background: white; border: 1px solid #dfe5ef; border-radius: 14px; padding: 22px; box-shadow: 0 4px 18px #2032520c; }
+    h2 { margin-top: 0; }
+    label { display: block; font-weight: 600; margin: 16px 0 6px; }
+    input[type=file] { width: 100%; }
+    button { margin-top: 18px; border: 0; border-radius: 8px; background: #2459cf; color: white; padding: 11px 16px; font-weight: 700; cursor: pointer; }
+    button:disabled { opacity: .6; cursor: wait; }
+    .status { min-height: 24px; margin-bottom: 0; font-weight: 600; }
+    .hint { color: #526078; font-size: .93rem; line-height: 1.5; }
+    .success { color: #087443; } .failure { color: #b42318; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Tanda Tangan Digital PDF</h1>
+    <p class="intro">Tandatangani dokumen dan periksa apakah dokumen masih sesuai dengan tanda tangannya.</p>
+    <div class="cards">
+      <section>
+        <h2>1. Tanda tangani PDF</h2>
+        <p class="hint">Isi metadata penandatangan, lalu pilih PDF. Kunci privat RSA disimpan terenkripsi menggunakan passphrase. PDF hasil akan memuat QR-Code verifikasi.</p>
+        <form id="sign-form">
+          <label for="sign-pdf">Dokumen PDF</label>
+          <input id="sign-pdf" name="pdf" type="file" accept="application/pdf,.pdf" required>
+          <label for="signer-name">Nama penandatangan</label>
+          <input id="signer-name" name="name" type="text" autocomplete="name" required>
+          <label for="signer-title">Jabatan</label>
+          <input id="signer-title" name="title" type="text" required>
+          <label for="signer-institution">Institusi</label>
+          <input id="signer-institution" name="institution" type="text" required>
+          <label for="sign-date">Tanggal</label>
+          <input id="sign-date" name="date" type="date" required>
+          <label for="key-passphrase">Passphrase kunci privat (minimal 8 karakter)</label>
+          <input id="key-passphrase" name="passphrase" type="password" minlength="8" autocomplete="new-password" required>
+          <button type="submit">Tanda tangani &amp; unduh</button>
+          <p class="status" aria-live="polite"></p>
+        </form>
+      </section>
+      <section>
+        <h2>2. Verifikasi tanda tangan</h2>
+        <p class="hint">Untuk pemeriksaan publik, pindai QR-Code pada PDF lalu unggah PDF bertanda tangan pada halaman tersebut. Untuk verifikasi manual, ekstrak ZIP dan unggah PDF, <code>signature.sig</code>, serta <code>public_key.pem</code> di sini.</p>
+        <form id="verify-form">
+          <label for="verify-pdf">Dokumen PDF</label>
+          <input id="verify-pdf" name="pdf" type="file" accept="application/pdf,.pdf" required>
+          <label for="signature">File tanda tangan (signature.sig)</label>
+          <input id="signature" name="signature" type="file" required>
+          <label for="public-key">Kunci publik (public_key.pem)</label>
+          <input id="public-key" name="public_key" type="file" required>
+          <button type="submit">Verifikasi</button>
+          <p class="status" aria-live="polite"></p>
+        </form>
+      </section>
+    </div>
+  </main>
+  <script>
+    const showError = async (response) => {
+      try { return (await response.json()).error || 'Permintaan gagal.'; }
+      catch { return 'Permintaan gagal. Coba lagi.'; }
+    };
+    document.querySelector('#sign-form').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const form = event.currentTarget, button = form.querySelector('button'), status = form.querySelector('.status');
+      button.disabled = true; status.className = 'status'; status.textContent = 'Memproses tanda tangan…';
+       try {
+        const response = await fetch('/sign', { method: 'POST', body: new FormData(form) });
+        if (!response.ok) throw new Error(await showError(response));
+        const blob = await response.blob(), url = URL.createObjectURL(blob), link = document.createElement('a');
+        link.href = url; link.download = 'hasil_tanda_tangan.zip'; link.click(); URL.revokeObjectURL(url);
+        status.classList.add('success'); status.textContent = 'Selesai. Simpan ZIP dan PDF asli untuk verifikasi.';
+      } catch (error) { status.classList.add('failure'); status.textContent = error.message; }
+      finally { button.disabled = false; }
+    });
+    document.querySelector('#verify-form').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const form = event.currentTarget, button = form.querySelector('button'), status = form.querySelector('.status');
+      button.disabled = true; status.className = 'status'; status.textContent = 'Memeriksa tanda tangan…';
+      try {
+        const response = await fetch('/verify', { method: 'POST', body: new FormData(form) });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || 'Permintaan gagal.');
+        status.classList.add(result.valid ? 'success' : 'failure'); status.textContent = result.message;
+      } catch (error) { status.classList.add('failure'); status.textContent = error.message; }
+      finally { button.disabled = false; }
+    });
+  </script>
+</body>
+</html>
