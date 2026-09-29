@@ -170,10 +170,13 @@
       const respons = await fetch('/sign', { method: 'POST', body: new FormData(formTandaTangan) });
       if (!respons.ok) throw new Error(await pesanKesalahan(respons));
       const dataUnduhan = await respons.blob();
+      const headerNamaArsip = respons.headers.get('Content-Disposition') || '';
+      const cocokNamaArsip = headerNamaArsip.match(/filename\*=UTF-8''([^;]+)|filename="?([^";]+)"?/i);
+      const namaUnduhan = decodeURIComponent(cocokNamaArsip?.[1] || cocokNamaArsip?.[2] || 'hasil_tanda_tangan.zip');
       const alamatUrl = URL.createObjectURL(dataUnduhan);
       const tautan = document.createElement('a');
       tautan.href = alamatUrl;
-      tautan.download = 'hasil_tanda_tangan.zip';
+      tautan.download = namaUnduhan;
       document.body.appendChild(tautan);
       tautan.click();
       window.setTimeout(() => { URL.revokeObjectURL(alamatUrl); tautan.remove(); }, 1500);

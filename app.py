@@ -12,6 +12,7 @@ import pymupdf
 import qrcode
 import qrcode.image.svg
 from flask import Flask, jsonify, render_template, request, send_file, url_for
+from werkzeug.utils import secure_filename
 from Crypto.PublicKey import RSA
 
 import crypto_utils
@@ -123,11 +124,20 @@ def replace_sample_name(isi_pdf, nama_penanda_tangan):
     return pdf_personalisasi
 
 
+# Menyiapkan nama arsip unduhan yang aman dan mudah dikenali.
+def buat_nama_arsip(nama_pilihan, nama_pdf):
+    nama_dasar = nama_pilihan.strip() or f"{Path(nama_pdf).stem}_bertanda_tangan"
+    nama_dasar = Path(nama_dasar).stem
+    nama_aman = secure_filename(nama_dasar).strip("._-")
+    return f"{nama_aman or 'hasil_tanda_tangan'}.zip"
+
+
 @app.post("/sign")
 # Memvalidasi masukan, menandatangani PDF, lalu mengirim arsip hasilnya.
 def sign():
     berkas_pdf = request.files.get("pdf")
     frasa_sandi = request.form.get("passphrase", "")
+    nama_arsip = buat_nama_arsip(request.form.get("archive_name", ""), berkas_pdf.filename if berkas_pdf else "")
     metadata_penanda_tangan = {
         "name": request.form.get("name", "").strip(),
         "title": request.form.get("title", "").strip(),
@@ -201,7 +211,7 @@ def sign():
         arsip,
         mimetype="application/zip",
         as_attachment=True,
-        download_name="hasil_tanda_tangan.zip",
+        download_name=nama_arsip,
     )
 
 
